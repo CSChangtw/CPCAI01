@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>土建工程提示語生成器</title>
+
+  <!-- PWA -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="提示語生成">
+  <meta name="theme-color" content="#f5a623">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #181c27;
+      --card: #1e2333;
+      --border: #2c3350;
+      --border-bright: #3d4a70;
+      --accent: #f5a623;
+      --accent-dim: rgba(245,166,35,0.12);
+      --accent-glow: rgba(245,166,35,0.25);
+      --blue: #4a90e2;
+      --blue-dim: rgba(74,144,226,0.12);
+      --green: #27c980;
+      --green-dim: rgba(39,201,128,0.12);
+      --text: #e8ecf4;
+      --text-muted: #7a85a3;
+      --text-subtle: #4a5272;
+      --label: #b0bcd4;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 32px 16px 64px;
+      background-image:
+        radial-gradient(ellipse 60% 50% at 80% 10%, rgba(74,144,226,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 10% 80%, rgba(245,166,35,0.05) 0%, transparent 60%);
+    }
+
+    /* ── Header ─────────────────────────── */
+    header {
+      max-width: 680px;
+      margin: 0 auto 32px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      animation: fadeDown 0.5s ease both;
+    }
+    .header-icon {
+      width: 64px; height: 64px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .header-icon img { width: 100%; height: 100%; display: block; object-fit: cover; }
+    .header-text h1 {
+      font-family: 'Bebas Neue', 'Noto Sans TC', sans-serif;
+      font-size: 1.8rem;
+      letter-spacing: 3px;
+      color: var(--text);
+      line-height: 1;
+    }
+    .header-text p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin-top: 4px;
+      text-transform: uppercase;
+    }
+    .badge {
+      margin-left: auto;
+      padding: 4px 10px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: 20px;
+      font-size: 0.7rem;
+      color: var(--accent);
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    /* ── Card ────────────────────────────── */
+    .card {
+      max-width: 680px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 28px 32px;
+      box-shadow: var(--shadow);
+      animation: fadeUp 0.5s ease both 0.05s;
+    }
+
+    /* ── Grid ────────────────────────────── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 520px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    /* ── Form Group ──────────────────────── */
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    label .icon { margin-right: 5px; font-style: normal; }
+
+    select, textarea {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.92rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+    }
+    select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a85a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+    select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    textarea { resize: vertical; line-height: 1.65; }
+    textarea::placeholder { color: var(--text-subtle); }
+
+    /* ── Divider ─────────────────────────── */
+    .divider {
+      grid-column: 1 / -1;
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 4px 0;
+    }
+
+    /* ── Buttons ─────────────────────────── */
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 13px 20px;
+      border: none; border-radius: var(--radius-sm);
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0f1117;
+      margin-top: 8px;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+    .btn-primary:hover {
+      background: #ffbe4a;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px var(--accent-glow);
+    }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-copy {
+      background: var(--green-dim);
+      color: var(--green);
+      border: 1px solid var(--green);
+    }
+    .btn-copy:hover { background: rgba(39,201,128,0.2); transform: translateY(-1px); }
+    .btn-copy.copied {
+      background: var(--green);
+      color: #0f1117;
+    }
+
+    /* ── Result Box ──────────────────────── */
+    .result-section {
+      margin-top: 24px;
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      display: none;
+      animation: fadeUp 0.35s ease both;
+    }
+    .result-section.visible { display: block; }
+    .result-header {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 10px;
+    }
+    .result-header span {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .result-pill {
+      margin-left: auto;
+      padding: 3px 9px;
+      background: var(--blue-dim);
+      border: 1px solid var(--blue);
+      border-radius: 20px;
+      font-size: 0.68rem;
+      color: var(--blue);
+      letter-spacing: 1px;
+    }
+    #output {
+      background: var(--surface);
+      border-color: var(--border-bright);
+      color: #c5d0e8;
+      font-size: 0.85rem;
+      line-height: 1.7;
+    }
+    #output:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(74,144,226,0.2); }
+
+    /* ── Tip ─────────────────────────────── */
+    .tip {
+      margin-top: 12px;
+      padding: 10px 14px;
+      background: var(--blue-dim);
+      border: 1px solid rgba(74,144,226,0.3);
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      color: var(--blue);
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .tip-icon { flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Animations ──────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Scrollbar ───────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+    /* ── Footer ──────────────────────────── */
+    footer {
+      text-align: center;
+      margin-top: 28px;
+      font-size: 0.72rem;
+      color: var(--text-subtle);
+      letter-spacing: 1px;
+    }
+
+  /* ── PWA Install ─────────────────────── */
+  #installWrap { max-width: 680px; margin: 0 auto 16px; animation: fadeDown 0.5s ease both; }
+  #installBtn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 11px 20px;
+    background: rgba(245,166,35,0.12);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    color: var(--accent);
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.88rem; font-weight: 700;
+    cursor: pointer; letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+  #installBtn:hover { background: rgba(245,166,35,0.2); }
+  #installBtn:active { transform: scale(0.98); }
+  /* iOS 說明彈窗 */
+  #iosModal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 1000;
+    align-items: flex-end; justify-content: center;
+  }
+  #iosModal.show { display: flex; }
+  #iosBox {
+    background: var(--card); border: 1px solid var(--border-bright);
+    border-radius: 16px 16px 0 0;
+    padding: 24px 20px 40px; width: 100%; max-width: 680px;
+    font-size: 0.92em; line-height: 1.8;
+  }
+  #iosBox h3 { margin: 0 0 14px; color: var(--accent); font-size: 1em; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  #iosBox .ios-icon { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--accent); display: block; }
+  #iosBox ol { margin: 0; padding-left: 20px; color: var(--label); }
+  #iosBox li { margin-bottom: 6px; }
+  #iosBox .tag { background: var(--surface); border: 1px solid var(--border-bright); border-radius: 4px; padding: 1px 6px; font-size: 0.85em; }
+  #iosClose {
+    display: block; margin: 20px auto 0;
+    background: var(--accent); color: #0f1117;
+    border: none; border-radius: 8px;
+    padding: 10px 32px; font-size: 0.92em;
+    font-family: 'Noto Sans TC', sans-serif;
+    font-weight: 700; cursor: pointer;
+  }
+  #offlineToast {
+    display: none; position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--card); border: 1px solid var(--border-bright);
+    color: var(--text); padding: 10px 22px;
+    border-radius: 20px; font-size: 0.82em; z-index: 999;
+    white-space: nowrap;
+  }
+  </style>
+</head>
+<body>
+
+<div id="installWrap">
+  <button id="installBtn">📲 安裝 App，離線也能使用</button>
+</div>
+
+<div id="iosModal">
+  <div id="iosBox">
+    <h3><img id="iosIcon" class="ios-icon" alt="">加入主畫面</h3>
+    <ol>
+      <li>點下方工具列的 <span class="tag">分享</span> 按鈕 ☐↑</li>
+      <li>向下滑找到 <span class="tag">加入主畫面</span></li>
+      <li>點右上角「新增」完成安裝</li>
+    </ol>
+    <button id="iosClose">知道了</button>
+  </div>
+</div>
+
+<header>
+  <div class="header-icon"><img alt="土建工程師圖標" src="data:image/webp;base64,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"></div>
+  <div class="header-text">
+    <h1>土木建築工程<br>提示語生成器</h1>
+  </div>
+<div class="badge">台南CPC</div>
+</header>
+
+<div class="card">
+  <div class="grid-2">
+
+    <!-- 扮演角色 -->
+    <div class="form-group">
+      <label><i class="icon">👤</i>扮演角色(R)</label>
+      <select id="role">
+        <option value="主任技師">主任技師</option>
+        <option value="工地主任">工地主任</option>
+        <option value="現場工程師">現場工程師</option>
+        <option value="品管人員">品管人員</option>
+        <option value="監造人員">監造人員</option>
+        <option value="安衛管理員">安衛管理員</option>
+        <option value="作業主管">作業主管</option>
+      </select>
+    </div>
+
+    <!-- 工程階段 -->
+    <div class="form-group">
+      <label><i class="icon">🏗️</i>工程階段(C)</label>
+      <select id="stage">
+        <option value="計畫書提送">計畫書提送</option>
+        <option value="材料檢試驗">材料檢試驗</option>
+        <option value="假設工程">假設工程</option>
+        <option value="基礎開挖工程">基礎開挖工程</option>
+        <option value="主體結構工程">主體結構工程</option>
+        <option value="泥作裝修工程">泥作裝修工程</option>
+        <option value="道路橋梁工程">道路橋梁工程</option>
+        <option value="機水電工程">機水電工程</option>
+        <option value="景觀植栽工程">景觀植栽工程</option>
+      </select>
+    </div>
+
+    <!-- 任務類型 -->
+    <div class="form-group">
+      <label><i class="icon">📋</i>任務類型(T)</label>
+      <select id="task">
+        <option value="撰寫缺失改善對策">撰寫缺失改善對策</option>
+        <option value="編寫施工計畫大綱">編寫施工計畫大綱</option>
+        <option value="擬定安衛宣導重點">擬定安衛宣導重點</option>
+        <option value="編製自主檢查表">編製自主檢查表</option>
+        <option value="問題原因判識">問題原因判識</option>
+        <option value="報告內容審查">報告內容審查</option>
+        <option value="試驗數據分析">試驗數據分析</option>
+      </select>
+    </div>
+
+    <!-- 輸出格式 -->
+    <div class="form-group">
+      <label><i class="icon">📄</i>輸出格式(F)</label>
+      <select id="format">
+        <option value="條列式">條列式</option>
+        <option value="列表彙整">列表彙整</option>
+        <option value="繪圖說明">繪圖說明</option>
+        <option value="HTML檔案">HTML 檔案</option>
+        <option value="Word檔案">Word 檔案</option>
+        <option value="PDF檔案">PDF 檔案</option>
+      </select>
+    </div>
+
+    <hr class="divider">
+
+    <!-- 現場描述 -->
+    <div class="form-group full">
+      <label><i class="icon">📝</i>現場具體狀況描述(I)</label>
+      <textarea id="situation" rows="5"
+        placeholder="例如：地下二層 B 區柱子拆模有嚴重蜂窩，蜂窩面積約 30×40 cm，深度約 5 cm；或貼上需要撰寫的計畫書名稱、試驗數據等..."></textarea>
+    </div>
+
+  </div><!-- /grid-2 -->
+
+  <button class="btn btn-primary" onclick="generatePrompt()">
+    ✦ 生成專屬提示語
+  </button>
+
+  <!-- Result -->
+  <div id="resultSection" class="result-section">
+    <div class="result-header">
+      <span>✨ 生成結果</span>
+      <span class="result-pill">複製後貼給 AI</span>
+    </div>
+    <textarea id="output" rows="12" readonly></textarea>
+    <div class="tip">
+      <span class="tip-icon">💡</span>
+      <span>可直接複製至 ChatGPT、Gemini 或 Claude 使用。若指定輸出為檔案格式，AI 將以 UTF-8 繁體中文呈現，避免亂碼。</span>
+    </div>
+    <button class="btn btn-copy" id="copyBtn" onclick="copyToClipboard()" style="margin-top: 12px;">
+      ⎘ 一鍵複製提示語
+    </button>
+  </div>
+</div>
+
+<footer>© 土建工程 AI 工具 · 張朝順</footer>
+
+<script>
+  function generatePrompt() {
+    const role      = document.getElementById('role').value;
+    const stage     = document.getElementById('stage').value;
+    const task      = document.getElementById('task').value;
+    const format    = document.getElementById('format').value.replace('（Markdown 表格）', '');
+    const situation = document.getElementById('situation').value.trim();
+
+    if (!situation) {
+      shakeSituation();
+      return;
+    }
+
+    let formatConstraint = `輸出形式請依照【${format}】呈現。`;
+
+    if (format.includes('檔案')) {
+      formatConstraint += `\n   ⚠️ 重要規範：由於指定輸出為檔案格式，請務必確保內容為標準的「繁體中文」，並使用 UTF-8 編碼，確保「無亂碼」產生。`;
+    } else if (format === '列表彙整') {
+      formatConstraint += `請使用 Markdown 表格進行清楚分類彙整。`;
+    } else if (format === '繪圖說明') {
+      formatConstraint = `輸出形式請依照【繪圖說明】呈現。
+   ⚠️ 【繪圖與備用方案指令】：
+   1. 若你具備生成圖像的能力，請直接輸出呈現上述狀況的「專業工程示意圖或剖面圖」。
+   2. 若你的系統受限無法直接提供示意圖，請改為提供一段高品質、可供直接複製的「英文繪圖提示語 (Image Generation Prompt)」。
+   3. 【重要標註要求】：無論是直接生圖或提供英文提示語，請務必指示在圖片的關鍵部位加上「數字編號（如 ①, ②, ③ 等）」，並在回覆中以繁體中文詳細列出這些數字編號所對應的圖例解說與重點文字說明。`;
+    }
+
+    const finalPrompt =
+`你現在是一位擁有 20 年台灣土木建築現場經驗的${role}，熟知公共工程委員會與內政部營建署相關規範。
+
+目前的工程階段為【${stage}】。
+現場遇到的具體狀況／需求／數據如下：
+「${situation}」
+
+請協助我進行【${task}】。
+請嚴格遵守以下限制：
+1. 內容必須符合台灣營建業實務慣例、專有名詞與相關法規。
+2. 若涉及原因判識或數據分析，請依據工程力學、材料特性或法規標準進行客觀推論。
+3. 若涉及審查，請條列出不合理、遺漏或需澄清的疑點。
+4. ${formatConstraint}`;
+
+    document.getElementById('output').value = finalPrompt;
+
+    const section = document.getElementById('resultSection');
+    section.classList.add('visible');
+    section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // Reset copy button
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '⎘ 一鍵複製提示語';
+    btn.classList.remove('copied');
+  }
+
+  function copyToClipboard() {
+    const text = document.getElementById('output').value;
+    if (!text) return;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => showCopied()).catch(() => fallbackCopy(text));
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    const el = document.getElementById('output');
+    el.select();
+    document.execCommand('copy');
+    showCopied();
+  }
+
+  function showCopied() {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ 已複製！';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '⎘ 一鍵複製提示語';
+      btn.classList.remove('copied');
+    }, 2500);
+  }
+
+  function shakeSituation() {
+    const el = document.getElementById('situation');
+    el.style.borderColor = '#e74c3c';
+    el.style.boxShadow = '0 0 0 3px rgba(231,76,60,0.25)';
+    el.placeholder = '⚠️ 請先描述現場狀況或貼上需要分析的數據！';
+    el.focus();
+    setTimeout(() => {
+      el.style.borderColor = '';
+      el.style.boxShadow = '';
+      el.placeholder = '例如：地下二層 B 區柱子拆模有嚴重蜂窩，蜂窩面積約 30×40 cm，深度約 5 cm；或貼上需要撰寫的計畫書名稱、試驗數據等...';
+    }, 3000);
+  }
+</script>
+<div id="offlineToast">⚠️ 目前離線，已載入快取版本</div>
+
+<script>
+// ── PWA ───────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () =>
+    navigator.serviceWorker.register('./sw.js')
+      .then(r => console.log('SW:', r.scope))
+      .catch(e => console.warn('SW fail:', e))
+  );
+}
+
+const installWrap = document.getElementById('installWrap');
+const installBtn  = document.getElementById('installBtn');
+const iosModal    = document.getElementById('iosModal');
+const iosClose    = document.getElementById('iosClose');
+const toast       = document.getElementById('offlineToast');
+// iOS 彈窗標題圖標沿用表頭圖片（避免重複內嵌 base64）
+document.getElementById('iosIcon').src = document.querySelector('.header-icon img').src;
+
+const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                  || navigator.standalone === true;
+let deferredPrompt = null;
+
+if (isStandalone) {
+  installWrap.style.display = 'none';
+} else if (isIOS) {
+  installBtn.addEventListener('click', () => iosModal.classList.add('show'));
+  iosClose.addEventListener('click',   () => iosModal.classList.remove('show'));
+  iosModal.addEventListener('click', e => {
+    if (e.target === iosModal) iosModal.classList.remove('show');
+  });
+} else {
+  installBtn.style.opacity = '0.55';
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.opacity = '1';
+  });
+  installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) {
+      alert('請使用瀏覽器選單（⋮）→「新增至主畫面」安裝。');
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    if (outcome === 'accepted') installWrap.style.display = 'none';
+  });
+  window.addEventListener('appinstalled', () => installWrap.style.display = 'none');
+}
+
+window.addEventListener('offline', () => {
+  toast.style.display = 'block';
+  setTimeout(() => toast.style.display = 'none', 3000);
+});
+window.addEventListener('online', () => toast.style.display = 'none');
+if (!navigator.onLine) toast.style.display = 'block';
+</script>
+
+</body>
+</html>
